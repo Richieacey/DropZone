@@ -8,6 +8,7 @@ import socket
 import flask
 import flask_cors
 import werkzeug
+import waitress
 
 def get_resource_path(relative_path):
     """Get the absolute path to a resource, works for dev and for PyInstaller."""
@@ -139,6 +140,14 @@ def manage_clipboard():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/shutdown', methods=['POST'])
+def shutdown():
+    print("Shutdown request received. Terminating...")
+    # Waitress doesn't have a clean programmatic shutdown in this thread context,
+    # but we can forcefully exit the process since it's a standalone app.
+    os._exit(0)
+    return jsonify({'message': 'Server shutting down...'}), 200
+
 
 @app.route('/file/<path:filename>', methods=['GET'])
 def download_file(filename):
@@ -149,4 +158,19 @@ if __name__ == '__main__':
     # Ensure the directory exists before starting the server
     if not os.path.exists(FILE_DIRECTORY):
         os.makedirs(FILE_DIRECTORY)
-    app.run(host='0.0.0.0', port=5555, debug=True)
+        
+    import threading
+    import webbrowser
+    import time
+
+    def open_browser():
+        time.sleep(1.5) # Give the server a moment to spin up
+        target_url = "http://127.0.0.1:5555"
+        print(f"Opening browser to {target_url}...")
+        webbrowser.open(target_url)
+        
+    threading.Thread(target=open_browser, daemon=True).start()
+
+    from waitress import serve
+    print("Starting DropZone with Waitress WSGI server on port 5555...")
+    serve(app, host='0.0.0.0', port=5555)

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { UploadCloud, File, FileText, Image as ImageIcon, Film, Music, Archive, Code, Download, Trash2, RefreshCw, Folder, QrCode, Clipboard, Copy, Save, Check } from 'lucide-react';
+import { UploadCloud, File, FileText, Image as ImageIcon, Film, Music, Archive, Code, Download, Trash2, RefreshCw, Folder, QrCode, Clipboard, Copy, Save, Check, Power } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 
 const API_BASE = 'http://localhost:5555/api'; // Useful for dev, empty for prod if served from same host
@@ -187,35 +187,61 @@ function App() {
     }
   };
 
+  const handleShutdown = async () => {
+    if (!window.confirm("Are you sure you want to shut down the DropZone server? You will need to restart the application manually to use it again.")) return;
+
+    try {
+      await axios.post(getApiUrl('/shutdown'));
+      alert("Server is shutting down. You can now close this window.");
+      // Optionally close the window if the browser allows it
+      window.close();
+    } catch (error) {
+      console.error('Error shutting down server:', error);
+      // Waitress kills itself hard, so it might appear as a generic network error here
+      alert("Server shutdown command sent. The server might have already been terminated.");
+    }
+  };
+
   return (
     <div className="glass-panel">
       <header className="header" style={{ position: 'relative' }}>
         <Folder />
         <h1>DropZone</h1>
         {networkUrl && (
-          <div className="qr-container" style={{ marginLeft: 'auto', position: 'relative' }}>
-            <button
-              className="refresh-btn"
-              onClick={() => setShowQR(!showQR)}
-              title="Show QR Code to connect from phone"
+          <div className="header-controls" style={{ marginLeft: 'auto', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <div className="qr-container" style={{ position: 'relative' }}>
+              <button
+                className="refresh-btn"
+                onClick={() => setShowQR(!showQR)}
+                title="Show QR Code to connect from phone"
+              >
+                <QrCode size={20} />
+              </button>
+              {showQR && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  marginTop: '10px',
+                  background: 'white',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)',
+                  zIndex: 50
+                }}>
+                  <QRCodeSVG value={networkUrl} size={256} />
+                </div>
+              )}
+            </div>
+            
+            <button 
+              className="refresh-btn text-danger" 
+              onClick={handleShutdown}
+              title="Shut down server"
+              style={{ color: 'var(--danger)' }}
             >
-              <QrCode size={20} />
+              <Power size={20} />
             </button>
-            {showQR && (
-              <div style={{
-                position: 'absolute',
-                top: '100%',
-                right: 0,
-                marginTop: '10px',
-                background: 'white',
-                padding: '12px',
-                borderRadius: '8px',
-                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)',
-                zIndex: 50
-              }}>
-                <QRCodeSVG value={networkUrl} size={256} />
-              </div>
-            )}
           </div>
         )}
       </header>

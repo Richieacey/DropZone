@@ -54,6 +54,10 @@ def list_files():
         files = []
         if os.path.exists(FILE_DIRECTORY):
             for filename in os.listdir(FILE_DIRECTORY):
+                # Don't show the internal clipboard file in the UI list
+                if filename == "clipboard.txt":
+                    continue
+                    
                 filepath = os.path.join(FILE_DIRECTORY, filename)
                 if os.path.isfile(filepath):
                     stat = os.stat(filepath)

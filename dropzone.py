@@ -19,6 +19,7 @@ CORS(app) # Enable CORS for frontend development
 
 # Define the absolute path to your files folder
 FILE_DIRECTORY = os.path.join(os.getcwd(), "my_files")
+CLIPBOARD_FILE = os.path.join(FILE_DIRECTORY, "clipboard.txt")
 
 @app.route('/')
 def serve_frontend():
@@ -112,6 +113,32 @@ def delete_file(filename):
             return jsonify({'error': 'File not found'}), 404
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/clipboard', methods=['GET', 'POST'])
+def manage_clipboard():
+    try:
+        if request.method == 'GET':
+            content = ""
+            if os.path.exists(CLIPBOARD_FILE):
+                with open(CLIPBOARD_FILE, 'r', encoding='utf-8') as f:
+                    content = f.read()
+            return jsonify({'content': content})
+            
+        elif request.method == 'POST':
+            data = request.json
+            if not data or 'content' not in data:
+                return jsonify({'error': 'No content provided'}), 400
+            
+            if not os.path.exists(FILE_DIRECTORY):
+                os.makedirs(FILE_DIRECTORY)
+                
+            with open(CLIPBOARD_FILE, 'w', encoding='utf-8') as f:
+                f.write(data['content'])
+                
+            return jsonify({'message': 'Clipboard updated successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 @app.route('/file/<path:filename>', methods=['GET'])
 def download_file(filename):

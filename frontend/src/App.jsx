@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { UploadCloud, File, FileText, Image as ImageIcon, Film, Music, Archive, Code, Download, Trash2, RefreshCw, Folder, QrCode } from 'lucide-react';
+import { UploadCloud, File, FileText, Image as ImageIcon, Film, Music, Archive, Code, Download, Trash2, RefreshCw, Folder, QrCode, Clipboard, Copy, Save, Check } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 
 const API_BASE = 'http://localhost:5555/api'; // Useful for dev, empty for prod if served from same host
@@ -29,6 +29,10 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [networkUrl, setNetworkUrl] = useState('');
   const [showQR, setShowQR] = useState(false);
+  const [clipboardText, setClipboardText] = useState('');
+  const [isSavingClipboard, setIsSavingClipboard] = useState(false);
+  const [lastSaved, setLastSaved] = useState(null);
+  const [showCopied, setShowCopied] = useState(false);
 
   const fetchFiles = useCallback(async () => {
     setLoading(true);
@@ -42,8 +46,18 @@ function App() {
     }
   }, []);
 
+  const fetchClipboard = useCallback(async () => {
+    try {
+      const response = await axios.get(getApiUrl('/clipboard'));
+      setClipboardText(response.data.content || '');
+    } catch (error) {
+      console.error('Error fetching clipboard:', error);
+    }
+  }, []);
+
   useEffect(() => {
     fetchFiles();
+    fetchClipboard();
 
     // Fetch local network URL for QR Code
     axios.get(getApiUrl('/network-info'))
@@ -53,7 +67,7 @@ function App() {
         }
       })
       .catch(err => console.error('Could not fetch network info', err));
-  }, [fetchFiles]);
+  }, [fetchFiles, fetchClipboard]);
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -108,16 +122,23 @@ function App() {
     }
   };
 
-  const handleDelete = async (filename) => {
-    if (!window.confirm(`Are you sure you want to delete ${filename}?`)) return;
-
+  const handleUpdateClipboard = async () => {
+    setIsSavingClipboard(true);
     try {
-      await axios.delete(getApiUrl(`/delete/${encodeURIComponent(filename)}`));
-      fetchFiles();
+      await axios.post(getApiUrl('/clipboard'), { content: clipboardText });
+      setLastSaved(new Date());
     } catch (error) {
-      console.error('Error deleting file:', error);
-      alert('Delete failed.');
+      console.error('Error updating clipboard:', error);
+      alert('Failed to save clipboard.');
+    } finally {
+      setIsSavingClipboard(false);
     }
+  };
+
+  const copyToLocalClipboard = () => {
+    navigator.clipboard.writeText(clipboardText);
+    setShowCopied(true);
+    setTimeout(() => setShowCopied(false), 2000);
   };
 
   const formatSize = (bytes) => {
@@ -151,6 +172,18 @@ function App() {
         return <FileText size={32} />;
       default:
         return <File size={32} />;
+    }
+  };
+
+  const handleDelete = async (filename) => {
+    if (!window.confirm(`Are you sure you want to delete ${filename}?`)) return;
+
+    try {
+      await axios.delete(getApiUrl(`/delete/${encodeURIComponent(filename)}`));
+      fetchFiles();
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      alert('Delete failed.');
     }
   };
 
@@ -213,6 +246,55 @@ function App() {
             ></div>
           </div>
         )}
+      </div>
+
+      <div className="clipboard-section">
+        <div className="section-header">
+          <div className="header-left">
+            <Clipboard size={20} />
+            <h2>Shared Clipboard</h2>
+          </div>
+          <div className="header-actions">
+            {lastSaved && (
+              <span className="last-saved">
+                Saved {lastSaved.toLocaleTimeString()}
+              </span>
+            )}
+            <button 
+              className="refresh-btn mini" 
+              onClick={fetchClipboard}
+              title="Refresh clipboard from server"
+            >
+              <RefreshCw size={14} />
+            </button>
+          </div>
+        </div>
+        
+        <div className="clipboard-container">
+          <textarea
+            className="clipboard-textarea"
+            placeholder="Paste text here to share across devices..."
+            value={clipboardText}
+            onChange={(e) => setClipboardText(e.target.value)}
+          />
+          <div className="clipboard-actions">
+            <button 
+              className="btn btn-primary" 
+              onClick={handleUpdateClipboard}
+              disabled={isSavingClipboard}
+            >
+              {isSavingClipboard ? <RefreshCw size={16} className="animate-spin" /> : <Save size={16} />}
+              {isSavingClipboard ? 'Saving...' : 'Save to Cloud'}
+            </button>
+            <button 
+              className="btn btn-secondary" 
+              onClick={copyToLocalClipboard}
+            >
+              {showCopied ? <Check size={16} /> : <Copy size={16} />}
+              {showCopied ? 'Copied!' : 'Copy Local'}
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="file-list-container">

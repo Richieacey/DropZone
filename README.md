@@ -67,7 +67,7 @@ To create your own standalone executable:
 npm run build
 
 # In the root directory
-pyinstaller --onefile --add-data "dist;dist" --hidden-import flask --hidden-import flask_cors --hidden-import werkzeug --icon dropzone.ico dropzone.py
+pyinstaller --noconfirm --onefile --noconsole --add-data "dist;dist" --hidden-import flask --hidden-import flask_cors --hidden-import werkzeug --hidden-import waitress --icon dropzone.ico dropzone.py
 ```
 
 ## 📂 Project Structure

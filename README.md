@@ -33,7 +33,7 @@ DropZone is a sleek, modern, and lightweight local file-sharing application. Bui
 ## 🚀 Getting Started
 
 ### Using the Executable (Recommended)
-1. Download the latest `dropzone_v3.exe`.
+1. Download the `dropzone.exe`.
 2. Double-click to run.
 3. Open your browser to `http://localhost:5555` or scan the QR code in the header with your phone.
 
